@@ -22,7 +22,6 @@ class RandomForestRegressorCustom(BaseEstimator, RegressorMixin):
         max_features: int | float | str | None = "sqrt",
         min_samples_split: int = 2,
         min_samples_leaf: int = 1,
-        oob_score: bool = True,
         random_state: int | None = 42,
     ) -> None:
         self.n_estimators = n_estimators
@@ -30,7 +29,6 @@ class RandomForestRegressorCustom(BaseEstimator, RegressorMixin):
         self.max_features = max_features
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
-        self.oob_score = oob_score
         self.random_state = random_state
 
     def fit(self, X, y):
@@ -61,13 +59,9 @@ class RandomForestRegressorCustom(BaseEstimator, RegressorMixin):
                 )
             )
 
-        if self.oob_score:
-            self.oob_prediction_ = self._compute_oob_predictions(X)
-            mask = ~np.isnan(self.oob_prediction_)
-            self.oob_score_ = r2_score(y[mask], self.oob_prediction_[mask]) if np.any(mask) else np.nan
-        else:
-            self.oob_prediction_ = None
-            self.oob_score_ = np.nan
+        self.oob_prediction_ = self._compute_oob_predictions(X)
+        mask = ~np.isnan(self.oob_prediction_)
+        self.oob_score_ = r2_score(y[mask], self.oob_prediction_[mask]) if np.any(mask) else np.nan
 
         return self
 
