@@ -1,5 +1,3 @@
-from collections import deque
-
 import numpy as np
 
 from evaluators import calculate_gini_impurity, calculate_information_gain
@@ -366,7 +364,7 @@ class DecisionTreeClassifier:
 
     def print_tree(self) -> None:
         """
-        Печатает значения узлов дерева в ширину.
+        Печатает дерево решений в читаемом иерархическом виде.
 
         Parameters:
             None: Функция не принимает параметры. По умолчанию: None.
@@ -375,22 +373,78 @@ class DecisionTreeClassifier:
             None: Структура дерева выводится в консоль.
 
         Fallbacks:
-            Если дерево не построено, функция завершает работу без вывода.
+            Если дерево не построено, печатается понятное сообщение.
         """
-        # Пустое дерево не содержит узлов для вывода.
+        # Проверяем, что дерево построено перед выводом структуры.
         if not self.node:
+            print("Дерево не построено. Сначала вызовите id3().")
             return
 
-        # Обходим дерево в ширину с помощью очереди.
-        nodes = deque([self.node])
-        while nodes:
-            node = nodes.popleft()
-            print(node.value)
+        def format_node(node: Node) -> str:
+            """
+            Формирует подпись узла для вывода дерева.
 
-            # Печатаем значения ребер и добавляем дочерние узлы в очередь.
+            Parameters:
+                node (Node): Узел дерева решений. По умолчанию: нет.
+
+            Returns:
+                str: Читаемая подпись узла.
+
+            Fallbacks:
+                Если значение узла пустое, используется строка "пустой узел".
+            """
+            # Лист отображаем как итоговый класс, внутренний узел - как проверяемый признак.
+            if not node.children:
+                return f"класс: {node.value if node.value is not None else node.prediction}"
+
+            return f"признак: {node.value if node.value is not None else 'пустой узел'}"
+
+        def print_node(
+            node: Node,
+            line_prefix: str = "",
+            children_prefix: str = "",
+            branch: str = "",
+        ) -> None:
+            """
+            Рекурсивно печатает узел и его дочерние ветви.
+
+            Parameters:
+                node (Node): Текущий узел дерева. По умолчанию: нет.
+                line_prefix (str): Отступ строки текущего узла. По умолчанию: "".
+                children_prefix (str): Отступ дочерних строк. По умолчанию: "".
+                branch (str): Подпись ребра от родителя. По умолчанию: "".
+
+            Returns:
+                None: Узел и его потомки печатаются в консоль.
+
+            Fallbacks:
+                Если дочерняя ссылка отсутствует, ветка помечается как пустая.
+            """
+            # Печатаем текущую строку дерева с подписью условия перехода.
+            label = format_node(node)
+            print(f"{line_prefix}{branch}{label}")
+
+            # Продолжаем рекурсию для дочерних ветвей текущего узла.
             if node.children:
-                for child in node.children:
-                    print(f"({child.value})")
-                    nodes.append(child.next)
-            elif node.next:
-                print(node.next)
+                for index, child in enumerate(node.children):
+                    is_last = index == len(node.children) - 1
+                    connector = "`-- " if is_last else "|-- "
+                    next_children_prefix = children_prefix + (
+                        "    " if is_last else "|   "
+                    )
+                    condition = f"если {node.value} {child.value}: "
+
+                    # Выводим пустую ветку явно, чтобы структура не выглядела оборванной.
+                    if child.next is None:
+                        print(f"{children_prefix}{connector}{condition}пустая ветка")
+                    else:
+                        print_node(
+                            child.next,
+                            children_prefix,
+                            next_children_prefix,
+                            connector + condition,
+                        )
+
+        # Начинаем вывод с заголовка и корневого узла дерева.
+        print("Дерево решений")
+        print_node(self.node)
